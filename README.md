@@ -88,6 +88,24 @@ elige cualquier `.apk` con el selector de archivos y lo instala por
 - Límites: Android siempre muestra la confirmación de instalación; no evita
   Play Protect ni conflictos de firma.
 
+Funciones incluidas (15 mejoras):
+
+1. Info del APK antes de instalar: nombre, icono, paquete, versión y tamaño.
+2. Diálogo de confirmación con esa info (Instalar/Cancelar).
+3. Barra de progreso al copiar e instalar.
+4. Historial persistente de instalaciones (OK/fallo).
+5. Botón Abrir la app instalada.
+6. Botón Reintentar tras un fallo.
+7. Permiso persistido del archivo elegido.
+8. Botón Desinstalar la última app.
+9. Botón Compartir el APK.
+10. Botón Guardar copia en Descargas.
+11. Notificación de resultado (éxito/fallo).
+12. Registro de eventos en pantalla.
+13. Nombre y tamaño del archivo elegido.
+14. Tema claro/oscuro conmutable.
+15. Diálogo Acerca de (marca Nexos, versión).
+
 ## Versiones fijadas
 
 - Java 17 (Temurin), Gradle 8.9, AGP 8.5.2, Kotlin 1.9.24
