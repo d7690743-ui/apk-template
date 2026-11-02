@@ -46,9 +46,14 @@ publicar en Play Store).
 │   ├── build.gradle                  # Módulo app (package com.example.apktemplate)
 │   ├── proguard-rules.pro
 │   └── src/main/
-│   │     ├── AndroidManifest.xml
-│   │     ├── java/com/example/apktemplate/MainActivity.kt  # WebView "Hola Mundo"
-│   │     └── res/values/strings.xml
+│         ├── AndroidManifest.xml
+│         ├── java/com/example/apktemplate/MainActivity.kt  # WebView "Hola Mundo"
+│         └── res/values/strings.xml
+├── installer/                        # Nexos Instalador estilo SAI
+│   └── src/main/
+│         ├── AndroidManifest.xml     # Permiso REQUEST_INSTALL_PACKAGES
+│         ├── java/com/nexos/installer/MainActivity.kt  # Sesión PackageInstaller
+│         └── res/layout/activity_main.xml, res/values/strings.xml
 ├── build.gradle                      # Plugins raíz (AGP 8.5.2, Kotlin 1.9.24)
 ├── settings.gradle
 ├── gradle.properties
@@ -70,6 +75,18 @@ El workflow tiene 3 jobs y cada uno solo corre si detecta su proyecto:
 Para cambiar de tecnología, sustituye el contenido del repo por tu app
 (Flutter, Kivy o nativa) y haz push: el job correcto se activa solo, sin
 editar el workflow.
+
+## Nexos Instalador (módulo `installer`)
+
+App genérica estilo SAI para los móviles donde el instalador del sistema falla:
+elige cualquier `.apk` con el selector de archivos y lo instala por
+**sesión de `PackageInstaller`** (técnica "rootless", sin root).
+
+- Package: `com.nexos.installer`. Su APK sale en el mismo artifact
+  (`installer/build/outputs/apk/debug/*.apk`).
+- Pide el permiso "instalar apps desconocidas" para sí misma la primera vez.
+- Límites: Android siempre muestra la confirmación de instalación; no evita
+  Play Protect ni conflictos de firma.
 
 ## Versiones fijadas
 
