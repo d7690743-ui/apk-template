@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace 'com.nexos.installer'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId 'com.nexos.installer'
         minSdk 24
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName '1.0'
     }
@@ -30,6 +30,8 @@ android {
     }
 }
 
-// Sin dependencias externas: PackageInstaller es del framework.
+// Sin dependencias externas en la app: PackageInstaller es del framework.
+// Solo JUnit para el test unitario puro (ApkUtilsTest).
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
 }

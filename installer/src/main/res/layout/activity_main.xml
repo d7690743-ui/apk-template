@@ -37,6 +37,38 @@
 
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/compare"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/checks"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/perms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/hashinfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
         <ProgressBar
             android:id="@+id/progress"
             style="?android:attr/progressBarStyleHorizontal"
@@ -73,6 +105,18 @@
             android:text="Reintentar" />
 
         <Button
+            android:id="@+id/cancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cancelar" />
+
+        <Button
+            android:id="@+id/copyhash"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Copiar SHA-256" />
+
+        <Button
             android:id="@+id/open"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -95,6 +139,42 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Guardar copia en Descargas" />
+
+        <Button
+            android:id="@+id/history_open"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ver historial" />
+
+        <Button
+            android:id="@+id/history_export"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Exportar historial" />
+
+        <Button
+            android:id="@+id/history_clear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Borrar historial" />
+
+        <Button
+            android:id="@+id/log_share"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Compartir registro" />
+
+        <Button
+            android:id="@+id/log_save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Guardar registro" />
+
+        <Button
+            android:id="@+id/log_clear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Limpiar registro" />
 
         <Button
             android:id="@+id/theme"

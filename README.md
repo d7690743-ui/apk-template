@@ -88,25 +88,39 @@ elige cualquier `.apk` con el selector de archivos y lo instala por
 - Límites: Android siempre muestra la confirmación de instalación; no evita
   Play Protect ni conflictos de firma.
 
-Funciones incluidas (15 mejoras):
+Funciones incluidas:
 
 1. Info del APK antes de instalar: nombre, icono, paquete, versión y tamaño.
 2. Diálogo de confirmación con esa info (Instalar/Cancelar).
-3. Barra de progreso al copiar e instalar.
-4. Historial persistente de instalaciones (OK/fallo).
-5. Botón Abrir la app instalada.
-6. Botón Reintentar tras un fallo.
-7. Permiso persistido del archivo elegido.
-8. Botón Desinstalar la última app.
-9. Botón Compartir el APK.
-10. Botón Guardar copia en Descargas.
-11. Notificación de resultado (éxito/fallo).
-12. Registro de eventos en pantalla.
-13. Nombre y tamaño del archivo elegido.
-14. Tema claro/oscuro conmutable.
-15. Diálogo Acerca de (marca Nexos, versión).
+3. Barra de progreso al copiar e instalar, con botón Cancelar.
+4. Historial persistente de instalaciones (OK/fallo) con detalle por entrada.
+5. Reinstalar desde el historial (guarda copia del último APK por paquete).
+6. Borrar entradas del historial y exportarlo como texto.
+7. Botón Abrir la app instalada.
+8. Botón Reintentar tras un fallo.
+9. Permiso persistido del archivo elegido.
+10. Botón Desinstalar la última app.
+11. Botón Compartir el APK.
+12. Botón Guardar copia en Descargas.
+13. Notificación de resultado (éxito con acción Abrir / fallo).
+14. Registro de eventos en pantalla, exportable (compartir/guardar/limpiar).
+15. Nombre y tamaño del archivo elegido.
+16. Tema claro/oscuro conmutable.
+17. Diálogo Acerca de (marca Nexos, versión).
+18. Abrir `.apk` tocado en el gestor de archivos u otra app (VIEW/SEND).
+19. Comparativa con la app instalada: actualización, misma versión o downgrade.
+20. Detección de conflicto de firma antes de instalar.
+21. Chequeos previos: minSdk, CPU (ABIs), espacio libre y permisos peligrosos.
+22. SHA-256 del APK y del firmante, con botón para copiar.
+23. Soporte de paquetes split (`.apks`/`.xapk`/`.apkm`) en sesión multipaquete.
+
+Notas:
+
+- Los splits necesitan Android 9+ (API 29); en versiones anteriores se avisa.
+- Los `.apks`/`.xapk` se eligen desde el botón "Elegir APK" de la app.
+- Lógica pura en `ApkUtils` con test unitario (`ApkUtilsTest`, JUnit).
 
 ## Versiones fijadas
 
-- Java 17 (Temurin), Gradle 8.9, AGP 8.5.2, Kotlin 1.9.24
-- `compileSdk`/`targetSdk` 34, `minSdk` 24 (Android 7.0+)
+- Java 17 (Temurin), Gradle 8.9, AGP 8.7.3, Kotlin 1.9.24
+- `compileSdk`/`targetSdk` 35, `minSdk` 24 (Android 7.0+)
