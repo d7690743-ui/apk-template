@@ -16,9 +16,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Process
 import android.os.StatFs
-import android.os.StorageManager
-import android.os.StorageStatsManager
 import android.os.SystemClock
+import android.os.storage.StorageManager
+import android.app.usage.StorageStatsManager
 import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
@@ -429,8 +429,8 @@ class MainActivity : AppCompatActivity() {
             var cacheBytes = 0L
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
-                    val ssm = getSystemService(StorageStatsManager::class.java)
-                    val sm = getSystemService(StorageManager::class.java)
+                    val ssm = getSystemService(Context.STORAGE_STATS_SERVICE) as StorageStatsManager
+                    val sm = getSystemService(Context.STORAGE_SERVICE) as StorageManager
                     val stats = ssm.queryStatsForPackage(sm.getUuidForPath(filesDir), pkg, Process.myUserHandle())
                     cacheBytes = stats.cacheBytes
                     sizes = "Caché: ${fmtBytes(stats.cacheBytes)}\nDatos: ${fmtBytes(stats.dataBytes)}\n" +
