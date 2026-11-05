@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var netSection: Section
     private lateinit var chromeSection: Section
     private lateinit var chromeTimeBody: TextView
+    private lateinit var historySection: Section
 
     private val buttons = mutableListOf<MaterialButton>()
     private var measureStart = 0L
@@ -81,8 +82,13 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, dp(8), 0, dp(12))
         }
         root.addView(verdictView)
+        root.addView(TextView(this).apply {
+            text = "Toca una tarjeta para repetir esa prueba."
+            textSize = 13f
+            setPadding(0, 0, 0, dp(8))
+        })
 
-        storageSection = addSection(root, "Almacenamiento")
+        storageSection = addSection(root, "Almacenamiento") { retest(::runStorage) }
         storageBar = LinearProgressIndicator(this).apply {
             setPadding(0, dp(4), 0, dp(4))
         }
@@ -93,19 +99,22 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
         )
-        ramSection = addSection(root, "RAM")
-        batterySection = addSection(root, "Batería")
-        cpuSection = addSection(root, "CPU")
-        netSection = addSection(root, "Red")
-        chromeSection = addSection(root, "Chrome")
+        ramSection = addSection(root, "RAM") { retest(::runRam) }
+        batterySection = addSection(root, "Batería") { retest(::runBattery) }
+        cpuSection = addSection(root, "CPU") { retest(::runCpu) }
+        netSection = addSection(root, "Red") { retest(::runNetwork) }
+        chromeSection = addSection(root, "Chrome") { retest(::runChromeInfo) }
 
         val timeCard = addSection(root, "Tiempo de arranque de Chrome")
         chromeTimeBody = timeCard.body
+        historySection = addSection(root, "Historial")
 
         addButton(root, "Test rápido") { quickTest() }
         addButton(root, "Medir Chrome") { measureChrome() }
         addButton(root, "Limpiar caché Chrome") { openChromeSettings() }
         addButton(root, "Cerrar apps en segundo plano") { closeBackgroundApps() }
+        addButton(root, "Liberar espacio") { openStorageSettings() }
+        addButton(root, "Compartir diagnóstico") { shareReport() }
 
         actionsResult = TextView(this).apply {
             textSize = 14f
@@ -130,7 +139,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density + 0.5f).toInt()
 
-    private fun addSection(parent: LinearLayout, title: String): Section {
+    private fun addSection(parent: LinearLayout, title: String, onTap: (() -> Unit)? = null): Section {
         val card = MaterialCardView(this).apply {
             radius = dp(12).toFloat()
             cardElevation = dp(2).toFloat()
@@ -157,6 +166,11 @@ class MainActivity : AppCompatActivity() {
         inner.addView(body)
         inner.addView(state)
         card.addView(inner)
+        if (onTap != null) {
+            card.isClickable = true
+            card.isFocusable = true
+            card.setOnClickListener { onTap() }
+        }
         parent.addView(card)
         return Section(body, state)
     }
@@ -250,8 +264,15 @@ class MainActivity : AppCompatActivity() {
             val used = mi.totalMem - mi.availMem
             val usedPct = used * 100.0 / mi.totalMem
             val status = if (usedPct > 85) Status.BAD else if (usedPct > 70) Status.WARN else Status.OK
+            val swapTotal = memInfoKb("SwapTotal:")
+            val swapFree = memInfoKb("SwapFree:")
+            val swapLine = if (swapTotal != null && swapTotal > 0) {
+                "\nSwap: total ${fmtBytes(swapTotal * 1024)} / libre ${fmtBytes((swapFree ?: 0) * 1024)}"
+            } else {
+                "\nSwap: no disponible"
+            }
             val body = "Total: ${fmtBytes(mi.totalMem)}\nDisponible: ${fmtBytes(mi.availMem)}\n" +
-                "Usada: ${fmtBytes(used)} (${String.format(Locale.US, "%.0f", usedPct)} %)\n\n" +
+                "Usada: ${fmtBytes(used)} (${String.format(Locale.US, "%.0f", usedPct)} %)$swapLine\n\n" +
                 "Top RAM:\n${topRamApps()}"
             val state = if (status == Status.BAD) "RAM saturada: cierra apps"
             else if (status == Status.WARN) "RAM alta" else "RAM OK"
@@ -260,6 +281,17 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             runOnUiThread { paint(ramSection, "No se pudo leer.", "Error: ${e.message}", Status.BAD) }
             Status.BAD
+        }
+    }
+
+    private fun memInfoKb(key: String): Long? {
+        return try {
+            java.io.File("/proc/meminfo").bufferedReader().useLines { seq ->
+                seq.firstOrNull { it.startsWith(key) }
+                    ?.trim()?.split(Regex("\\s+"))?.getOrNull(1)?.toLongOrNull()
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -302,8 +334,23 @@ class MainActivity : AppCompatActivity() {
                 else -> "Desconocida"
             }
             val status = if (temp >= 42) Status.BAD else if (temp >= 37) Status.WARN else Status.OK
+            val chargeStatus = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+            val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+            val chargeState = when (chargeStatus) {
+                BatteryManager.BATTERY_STATUS_CHARGING -> "Cargando"
+                BatteryManager.BATTERY_STATUS_FULL -> "Carga completa"
+                BatteryManager.BATTERY_STATUS_DISCHARGING -> "Descargando"
+                BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "No cargando"
+                else -> "?"
+            }
+            val via = listOfNotNull(
+                if (plugged and BatteryManager.BATTERY_PLUGGED_AC != 0) "AC" else null,
+                if (plugged and BatteryManager.BATTERY_PLUGGED_USB != 0) "USB" else null,
+                if (plugged and BatteryManager.BATTERY_PLUGGED_WIRELESS != 0) "inalámbrica" else null
+            ).joinToString("+")
             val body = "Nivel: ${if (pct >= 0) "$pct %" else "?"}\n" +
-                "Temperatura: ${String.format(Locale.US, "%.1f", temp)} °C\nSalud: $health"
+                "Temperatura: ${String.format(Locale.US, "%.1f", temp)} °C\nSalud: $health\n" +
+                "Estado: $chargeState" + (if (via.isNotEmpty()) " ($via)" else "")
             val state = if (status == Status.BAD) "Móvil caliente: baja rendimiento"
             else if (status == Status.WARN) "Temperatura algo alta" else "Batería OK"
             runOnUiThread { paint(batterySection, body, state, status) }
@@ -328,6 +375,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun cpuFreqMHz(): Long? {
+        return try {
+            java.io.File("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")
+                .readText().trim().toLongOrNull()?.div(1000)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun runCpu(): Status {
         return try {
             val first = readCpu()
@@ -338,7 +394,10 @@ class MainActivity : AppCompatActivity() {
             val idleDiff = second.second - first.second
             val usage = ((1.0 - idleDiff.toDouble() / totalDiff) * 100).coerceIn(0.0, 100.0)
             val status = if (usage > 80) Status.BAD else if (usage > 50) Status.WARN else Status.OK
-            val body = "Uso actual: ${String.format(Locale.US, "%.0f", usage)} %"
+            val cores = Runtime.getRuntime().availableProcessors()
+            val freq = cpuFreqMHz()
+            val body = "Uso actual: ${String.format(Locale.US, "%.0f", usage)} %\n" +
+                "Núcleos: $cores" + (if (freq != null) "\nFrecuencia: $freq MHz" else "")
             val state = if (status == Status.BAD) "CPU saturada" else if (status == Status.WARN) "CPU alta" else "CPU OK"
             runOnUiThread { paint(cpuSection, body, state, status) }
             status
@@ -367,16 +426,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun pingGoogle(): Pair<String, Status> {
         return try {
-            val p = Runtime.getRuntime().exec(arrayOf("ping", "-c", "1", "-W", "2", "google.com"))
+            val p = Runtime.getRuntime().exec(arrayOf("ping", "-c", "3", "-W", "2", "google.com"))
             val out = p.inputStream.bufferedReader().readText()
             p.waitFor()
             p.destroy()
-            val ms = Regex("time=([\\d.]+)").find(out)?.groupValues?.get(1)?.toFloatOrNull()
-            if (ms != null) {
-                val s = if (ms > 300) Status.BAD else if (ms > 150) Status.WARN else Status.OK
-                "Ping google.com: ${ms.toInt()} ms" to s
+            val times = Regex("time=([\\d.]+)").findAll(out)
+                .mapNotNull { it.groupValues.getOrNull(1)?.toFloatOrNull() }.toList()
+            val counts = Regex("(\\d+) packets transmitted, (\\d+) received").find(out)
+            val sent = counts?.groupValues?.getOrNull(1) ?: "?"
+            val got = counts?.groupValues?.getOrNull(2) ?: "?"
+            if (times.isNotEmpty()) {
+                val avg = times.average()
+                val s = if (avg > 300) Status.BAD else if (avg > 150) Status.WARN else Status.OK
+                "Ping google.com: ${avg.toInt()} ms prom. ($got/$sent)" to s
             } else {
-                "Ping google.com: sin respuesta" to Status.BAD
+                "Ping google.com: sin respuesta ($got/$sent)" to Status.BAD
             }
         } catch (e: Exception) {
             "Ping google.com: error (${e.message})" to Status.BAD
@@ -441,8 +505,19 @@ class MainActivity : AppCompatActivity() {
             } else {
                 sizes = "Caché/datos: requiere Android 8+"
             }
+            val updated = fmtDate(info.lastUpdateTime)
+            val installer = try {
+                if (Build.VERSION.SDK_INT >= 30) {
+                    packageManager.getInstallSourceInfo(pkg).installingPackageName
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getInstallerPackageName(pkg)
+                }
+            } catch (e: Exception) {
+                null
+            }
             val status = if (cacheBytes > 500L * 1_000_000L) Status.WARN else Status.OK
-            val body = "Versión: $ver\n$sizes\n" +
+            val body = "Versión: $ver\nActualizado: $updated\nInstalado por: ${installer ?: "?"}\n$sizes\n" +
                 "Pestañas abiertas: no accesible (Android no expone ese dato)"
             val state = if (status == Status.WARN) "Caché grande: conviene limpiar" else "Chrome OK"
             runOnUiThread { paint(chromeSection, body, state, status) }
@@ -514,26 +589,135 @@ class MainActivity : AppCompatActivity() {
         testing = true
         buttons.forEach { it.isEnabled = false }
         verdict("Midiendo todo...", null)
+        listOf(storageSection, ramSection, batterySection, cpuSection, netSection, chromeSection).forEach {
+            it.body.text = "Midiendo…"
+            it.state.text = ""
+        }
         thread {
             val results = listOf(
                 runStorage(), runRam(), runBattery(), runCpu(), runNetwork(), runChromeInfo()
             )
+            val names = listOf("Almacenamiento", "RAM", "Batería", "CPU", "Red", "Chrome")
+            val problems = names.zip(results).filter { it.second != Status.OK }
+                .sortedByDescending { it.second.ordinal }
             val worst = results.maxByOrNull { it.ordinal } ?: Status.OK
+            saveHistory(worst, problems.map { it.first })
             runOnUiThread {
+                val causes = if (problems.isEmpty()) {
+                    ""
+                } else {
+                    "\nCausas probables: " + problems.joinToString(", ") { it.first }
+                }
                 when (worst) {
                     Status.BAD -> verdict(
-                        "Hay al menos un problema (en rojo): esa es la causa probable de que Chrome tarde.",
+                        "Hay al menos un problema (en rojo): esa es la causa probable de que Chrome tarde.$causes",
                         Status.BAD
                     )
                     Status.WARN -> verdict(
-                        "Sin fallos graves, pero hay avisos (en amarillo) que pueden ralentizar Chrome.",
+                        "Sin fallos graves, pero hay avisos (en amarillo) que pueden ralentizar Chrome.$causes",
                         Status.WARN
                     )
                     Status.OK -> verdict("Todo bien: si Chrome tarda, prueba limpiar su caché.", Status.OK)
                 }
+                paintHistory()
                 buttons.forEach { it.isEnabled = true }
                 testing = false
             }
+        }
+    }
+
+    private fun retest(fn: () -> Status) {
+        thread {
+            try {
+                fn()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun fmtDate(ms: Long): String {
+        return try {
+            java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date(ms))
+        } catch (e: Exception) {
+            "?"
+        }
+    }
+
+    private fun openStorageSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS))
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_STORAGE_SETTINGS))
+            } catch (e2: Exception) {
+                actionsResult.text = "No se pudo abrir ajustes de almacenamiento."
+            }
+        }
+    }
+
+    private fun shareReport() {
+        val whenDone = try {
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(java.util.Date())
+        } catch (e: Exception) {
+            ""
+        }
+        val sb = StringBuilder("Diagnóstico Teléfono ($whenDone)\n\n")
+        sb.append(verdictView.text).append("\n\n")
+        val sections = listOf(
+            "Almacenamiento" to storageSection,
+            "RAM" to ramSection,
+            "Batería" to batterySection,
+            "CPU" to cpuSection,
+            "Red" to netSection,
+            "Chrome" to chromeSection
+        )
+        for ((title, s) in sections) {
+            sb.append("== ").append(title).append(" ==\n")
+                .append(s.body.text).append("\n").append(s.state.text).append("\n\n")
+        }
+        sb.append("== Arranque Chrome ==\n").append(chromeTimeBody.text).append("\n")
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, sb.toString())
+        }
+        startActivity(Intent.createChooser(intent, "Compartir diagnóstico"))
+    }
+
+    private fun saveHistory(worst: Status, problems: List<String>) {
+        try {
+            val stamp = try {
+                java.text.SimpleDateFormat("MM-dd HH:mm", Locale.US).format(java.util.Date())
+            } catch (e: Exception) {
+                ""
+            }
+            val tag = when (worst) {
+                Status.OK -> "OK"
+                Status.WARN -> "Avisos"
+                Status.BAD -> "Problemas"
+            }
+            val line = if (problems.isEmpty()) "$stamp — OK" else "$stamp — $tag: ${problems.joinToString(", ")}"
+            val prev = try {
+                openFileInput("history.log").bufferedReader().readLines()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val keep = (prev + line).takeLast(20).joinToString("\n")
+            openFileOutput("history.log", MODE_PRIVATE).use { it.write(keep.toByteArray()) }
+        } catch (e: Exception) {
+            // El historial es opcional; no rompe el diagnóstico.
+        }
+    }
+
+    private fun paintHistory() {
+        try {
+            val lines = openFileInput("history.log").bufferedReader().readLines().takeLast(5)
+            if (lines.isEmpty()) {
+                paint(historySection, "Sin historial todavía.", "", Status.OK)
+            } else {
+                paint(historySection, lines.joinToString("\n"), "${lines.size} últimos", Status.OK)
+            }
+        } catch (e: Exception) {
+            paint(historySection, "Sin historial todavía.", "", Status.OK)
         }
     }
 }
