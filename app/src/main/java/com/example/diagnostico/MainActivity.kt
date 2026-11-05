@@ -648,7 +648,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS))
         } catch (e: Exception) {
             try {
-                startActivity(Intent(Settings.ACTION_STORAGE_SETTINGS))
+                startActivity(Intent(Settings.ACTION_SETTINGS))
             } catch (e2: Exception) {
                 actionsResult.text = "No se pudo abrir ajustes de almacenamiento."
             }
