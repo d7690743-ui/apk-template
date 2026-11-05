@@ -1,8 +1,8 @@
-# APK Template universal
+# Diagnóstico Teléfono (APK debug)
 
-Template para compilar APKs de depuración (debug) automáticamente con GitHub Actions.
-Incluye un proyecto base **Android nativo mínimo** (Kotlin + Gradle + WebView) y un
-workflow que detecta solo el tipo de app presente en el repo.
+App Android que diagnostica por qué Chrome tarda en cargar: almacenamiento, RAM,
+batería, CPU, red, datos de Chrome y tiempo de arranque. Se compila con
+GitHub Actions (`./gradlew assembleDebug`).
 
 > Nota: este repo también contiene un ejemplo web con Flask (`app.py`,
 > `notas.json`, `requirements.txt`) que no interfiere con la compilación del APK.
@@ -31,8 +31,8 @@ No necesitas Android Studio ni SDK en tu máquina. Todo se compila en la nube:
 1. Copia el archivo `app-debug.apk` a tu móvil (USB, Drive, Telegram, etc.).
 2. Ábrelo con el gestor de archivos y pulsa **Instalar**.
 3. Si Android lo pide, permite **instalar apps desconocidas** para esa fuente.
-4. Abre la app **APK Template**: verás una pantalla con
-   **"Hola Mundo APK - Template listo"**.
+4. Abre la app **Diagnóstico Teléfono**: verás las tarjetas de
+   diagnóstico y el botón **Test rápido**.
 
 El APK está firmado con la clave de depuración (solo para pruebas, no para
 publicar en Play Store).
@@ -43,12 +43,12 @@ publicar en Play Store).
 .
 ├── .github/workflows/build-apk.yml   # Workflow universal (nativo/Flutter/Buildozer)
 ├── app/
-│   ├── build.gradle                  # Módulo app (package com.example.apktemplate)
+│   ├── build.gradle                  # Módulo app (package com.example.diagnostico)
 │   ├── proguard-rules.pro
 │   └── src/main/
-│         ├── AndroidManifest.xml
-│         ├── java/com/example/apktemplate/MainActivity.kt  # WebView "Hola Mundo"
-│         └── res/values/strings.xml
+│         ├── AndroidManifest.xml     # Permisos + queries para Chrome
+│         ├── java/com/example/diagnostico/MainActivity.kt  # Diagnóstico
+│         └── res/values/strings.xml, themes.xml
 ├── installer/                        # Nexos Instalador estilo SAI
 │   └── src/main/
 │         ├── AndroidManifest.xml     # Permiso REQUEST_INSTALL_PACKAGES

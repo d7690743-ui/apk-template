@@ -12,6 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = 'ApkTemplate'
+rootProject.name = 'Diagnostico'
 include ':app'
 include ':installer'
