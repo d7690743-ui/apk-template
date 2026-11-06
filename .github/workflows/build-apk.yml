@@ -1,17 +1,13 @@
-name: Corregir el flujo de trabajo
+name: Build APK (debug)
 on:
   push:
-    branches: [ maestro, main, master ]
+    branches: [ main, master ]
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:

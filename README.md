@@ -4,9 +4,6 @@ App Android que diagnostica por qué Chrome tarda en cargar: almacenamiento, RAM
 batería, CPU, red, datos de Chrome y tiempo de arranque. Se compila con
 GitHub Actions (`./gradlew assembleDebug`).
 
-> Nota: este repo también contiene un ejemplo web con Flask (`app.py`,
-> `notas.json`, `requirements.txt`) que no interfiere con la compilación del APK.
-
 ## Cómo compilar el APK
 
 No necesitas Android Studio ni SDK en tu máquina. Todo se compila en la nube:
@@ -41,7 +38,7 @@ publicar en Play Store).
 
 ```
 .
-├── .github/workflows/build-apk.yml   # Workflow universal (nativo/Flutter/Buildozer)
+├── .github/workflows/build-apk.yml   # Compila la app nativa con Gradle
 ├── app/
 │   ├── build.gradle                  # Módulo app (package com.example.diagnostico)
 │   ├── proguard-rules.pro
@@ -54,7 +51,7 @@ publicar en Play Store).
 │         ├── AndroidManifest.xml     # Permiso REQUEST_INSTALL_PACKAGES
 │         ├── java/com/nexos/installer/MainActivity.kt  # Sesión PackageInstaller
 │         └── res/layout/activity_main.xml, res/values/strings.xml
-├── build.gradle                      # Plugins raíz (AGP 8.5.2, Kotlin 1.9.24)
+├── build.gradle                      # Plugins raíz (AGP 8.7.3, Kotlin 1.9.24)
 ├── settings.gradle
 ├── gradle.properties
 ├── gradle/wrapper/                   # Wrapper oficial de Gradle 8.9
@@ -62,19 +59,11 @@ publicar en Play Store).
 └── README.md
 ```
 
-## Cómo funciona lo "universal"
+## Cómo funciona
 
-El workflow tiene 3 jobs y cada uno solo corre si detecta su proyecto:
-
-| Job              | Se activa si existe | Qué hace                        |
-|------------------|---------------------|---------------------------------|
-| Android nativo   | `settings.gradle`   | `./gradlew assembleDebug`       |
-| Flutter          | `pubspec.yaml`      | `flutter build apk --debug`     |
-| Buildozer/Kivy   | `buildozer.spec`    | `buildozer android debug`       |
-
-Para cambiar de tecnología, sustituye el contenido del repo por tu app
-(Flutter, Kivy o nativa) y haz push: el job correcto se activa solo, sin
-editar el workflow.
+El workflow tiene un solo job para Android nativo: detecta el proyecto por
+`settings.gradle`, corre `./gradlew assembleDebug` y sube los APK de `app` e
+`installer` como artifact `app-debug`.
 
 ## Nexos Instalador (módulo `installer`)
 
