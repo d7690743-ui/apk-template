@@ -15,7 +15,22 @@ android {
         versionName '1.0'
     }
 
+    signingConfigs {
+        // Clave debug FIJA y común a todos los proyectos Nexos: sin esto cada
+        // build de Actions firmaba con una clave efímera distinta y Android
+        // rechazaba actualizar (obligaba a desinstalar).
+        debug {
+            storeFile file("../gradle/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

@@ -118,4 +118,17 @@ class ApkUtilsTest {
     fun versionRelation_realisticVersionCodes() {
         assertEquals("UPDATE", ApkUtils.versionRelation(104, 107))
     }
+
+    @Test
+    fun shouldOfferReinstall_mismatchOrDowngrade() {
+        assertTrue(ApkUtils.shouldOfferReinstall(true, "UPDATE"))
+        assertTrue(ApkUtils.shouldOfferReinstall(false, "DOWNGRADE"))
+        assertTrue(ApkUtils.shouldOfferReinstall(true, "DOWNGRADE"))
+    }
+
+    @Test
+    fun shouldOfferReinstall_updateNormalNo() {
+        assertFalse(ApkUtils.shouldOfferReinstall(false, "UPDATE"))
+        assertFalse(ApkUtils.shouldOfferReinstall(false, "SAME"))
+    }
 }

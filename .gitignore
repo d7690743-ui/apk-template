@@ -13,6 +13,8 @@
 *.hprof
 *.keystore
 *.jks
+# Excepción: clave debug fija común (credenciales debug estándar, seguro subirla).
+!gradle/debug.keystore
 # APKs generados (se descargan desde Actions)
 *.apk
 

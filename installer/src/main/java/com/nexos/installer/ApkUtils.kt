@@ -38,6 +38,13 @@ object ApkUtils {
         else -> "SAME"
     }
 
+    /**
+     * true si conviene ofrecer "Desinstalar e instalar": con firma distinta o
+     * downgrade Android rechaza la actualización directa. Probado en ApkUtilsTest.
+     */
+    fun shouldOfferReinstall(signatureMismatch: Boolean, relation: String): Boolean =
+        signatureMismatch || relation == "DOWNGRADE"
+
     fun shortPermName(name: String): String =
         name.removePrefix("android.permission.")
 

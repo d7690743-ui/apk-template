@@ -76,6 +76,7 @@ class MainActivity : Activity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var pickButton: Button
     private lateinit var installButton: Button
+    private lateinit var reinstallButton: Button
     private lateinit var retryButton: Button
     private lateinit var cancelButton: Button
     private lateinit var copyHashButton: Button
@@ -101,18 +102,21 @@ class MainActivity : Activity() {
     private var installed: InstalledInfo? = null
     private var signatureMismatch = false
     private var relationText = ""
+    private var relation = ""
     private var checkLines: List<String> = emptyList()
     private var dangerousPerms: List<String> = emptyList()
     private var totalPerms = 0
     private var lastInstalledPackage = ""
     private var awaitingUnknownSources = false
     private var pendingAfterUnknownSources: (() -> Unit)? = null
+    private var pendingReinstall = false
     @Volatile private var cancelled = false
     @Volatile private var working = false
     private val logBuffer = StringBuilder()
 
     private val pickApkCode = 1001
     private val unknownSourcesCode = 1002
+    private val deleteCode = 1004
     private val notifyPermCode = 1003
     private val installAction = "com.nexos.installer.INSTALL_STATUS"
     private val channelId = "nexos_install"
@@ -152,8 +156,9 @@ class MainActivity : Activity() {
                     }
                 }
                 else -> {
+                    val hint = if (signatureMismatch) " Puedes usar «Desinstalar e instalar»." else ""
                     log("Estado: fallo (${msg ?: "error $status"})")
-                    statusText.text = "Falló la instalación: ${msg ?: "error $status"}"
+                    statusText.text = "Falló la instalación: ${msg ?: "error $status"}$hint"
                     addHistory("FALLO: ${msg ?: "error $status"}")
                     updateButtons()
                     notify("Nexos Instalador", "Falló: $fileName")
@@ -181,6 +186,7 @@ class MainActivity : Activity() {
         progressBar = findViewById(R.id.progress)
         pickButton = findViewById(R.id.pick)
         installButton = findViewById(R.id.install)
+        reinstallButton = findViewById(R.id.reinstall)
         retryButton = findViewById(R.id.retry)
         cancelButton = findViewById(R.id.cancel)
         copyHashButton = findViewById(R.id.copyhash)
@@ -194,6 +200,7 @@ class MainActivity : Activity() {
         lastInstalledPackage = prefs().getString("last_pkg", "") ?: ""
         pickButton.setOnClickListener { pickApk() }
         installButton.setOnClickListener { if (stagedFile != null) showConfirmDialog() }
+        reinstallButton.setOnClickListener { startReinstall() }
         retryButton.setOnClickListener { if (stagedFile != null) showConfirmDialog() }
         cancelButton.setOnClickListener {
             if (working) {
@@ -234,6 +241,17 @@ class MainActivity : Activity() {
         if (intent != null) {
             setIntent(intent)
             handleIncomingIntent(intent)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Red de seguridad: si la desinstalación no devolvió resultado pero la
+        // app ya no está, continuar con la instalación automáticamente.
+        if (pendingReinstall && stagedFile != null && !working && isPackageGone(apkPackage)) {
+            pendingReinstall = false
+            log("Anterior desinstalada, instalando nueva versión...")
+            runInstall()
         }
     }
 
@@ -292,6 +310,8 @@ class MainActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == pickApkCode && resultCode == RESULT_OK) {
             data?.data?.let { prepareApk(it) }
+        } else if (requestCode == deleteCode) {
+            onDeleteResult()
         } else if (requestCode == unknownSourcesCode && awaitingUnknownSources) {
             awaitingUnknownSources = false
             val action = pendingAfterUnknownSources
@@ -413,6 +433,8 @@ class MainActivity : Activity() {
         installed = null
         signatureMismatch = false
         relationText = ""
+        relation = ""
+        pendingReinstall = false
         checkLines = emptyList()
         dangerousPerms = emptyList()
         totalPerms = 0
@@ -599,7 +621,8 @@ class MainActivity : Activity() {
             relationText = "No instalada: será una instalación nueva."
             return
         }
-        relationText = when (ApkUtils.versionRelation(inst.versionCode, apkVersionCode)) {
+        relation = ApkUtils.versionRelation(inst.versionCode, apkVersionCode)
+        relationText = when (relation) {
             "UPDATE" -> "Actualización: instalada ${inst.versionName} (${inst.versionCode}) → nueva $apkVersion."
             "DOWNGRADE" -> "⚠ DOWNGRADE: la instalada ${inst.versionName} (${inst.versionCode}) es más nueva que $apkVersion. Android lo rechazará salvo que desinstales primero."
             else -> "Misma versión que la instalada (${inst.versionName}). Se reinstalará."
@@ -896,6 +919,55 @@ class MainActivity : Activity() {
         runOnUiThread {
             progressBar.visibility = if (visible) View.VISIBLE else View.GONE
             progressBar.progress = pct
+        }
+    }
+
+    // ---------- Desinstalar e instalar ----------
+
+    /** Instala cualquier APK aunque la firma sea distinta o sea downgrade. */
+    private fun startReinstall() {
+        if (stagedFile == null || installed == null || working) return
+        AlertDialog.Builder(this)
+            .setTitle("Desinstalar e instalar")
+            .setMessage(
+                "La versión instalada ($apkPackage) no admite actualización directa " +
+                    "(firma distinta o versión más nueva). Se desinstalará primero " +
+                    "—se pierden sus datos— y luego se instalará este APK automáticamente."
+            )
+            .setPositiveButton("Continuar") { _, _ ->
+                pendingReinstall = true
+                log("Desinstalando versión anterior para reinstalar...")
+                @Suppress("DEPRECATION") // Sin AndroidX a propósito: plantilla mínima.
+                startActivityForResult(
+                    Intent(Intent.ACTION_DELETE, Uri.parse("package:$apkPackage")),
+                    deleteCode
+                )
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun onDeleteResult() {
+        if (!pendingReinstall) return
+        // Algunos sistemas no devuelven RESULT_OK: lo que manda es si sigue instalada.
+        if (isPackageGone(apkPackage)) {
+            pendingReinstall = false
+            log("Anterior desinstalada, instalando nueva versión...")
+            runInstall()
+        } else {
+            pendingReinstall = false
+            log("Reinstalación cancelada (la app sigue instalada).")
+            statusText.text = "Reinstalación cancelada."
+        }
+    }
+
+    private fun isPackageGone(pkg: String): Boolean {
+        if (pkg.isEmpty()) return true
+        return try {
+            packageManager.getPackageInfo(pkg, 0)
+            false
+        } catch (_: Exception) {
+            true
         }
     }
 
@@ -1308,6 +1380,8 @@ class MainActivity : Activity() {
         val busy = working
         pickButton.isEnabled = !busy
         installButton.isEnabled = hasFile && !busy
+        reinstallButton.isEnabled = hasFile && !busy && installed != null &&
+            ApkUtils.shouldOfferReinstall(signatureMismatch, relation)
         retryButton.isEnabled = hasFile && !busy
         cancelButton.isEnabled = busy
         copyHashButton.isEnabled = apkSha256.isNotEmpty()
