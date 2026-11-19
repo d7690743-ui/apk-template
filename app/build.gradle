@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.diagnostico'
+    namespace 'com.example.aliasoutlook'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.example.diagnostico'
+        applicationId 'com.example.aliasoutlook'
         minSdk 24
         targetSdk 35
         versionCode 1

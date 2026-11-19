@@ -12,6 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = 'Diagnostico'
+rootProject.name = 'AliasOutlook'
 include ':app'
 include ':installer'
