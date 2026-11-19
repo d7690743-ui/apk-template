@@ -132,7 +132,12 @@ class MainActivity : AppCompatActivity() {
         })
 
         if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState.getBundle("webState"))
+            val webState = savedInstanceState.getBundle("webState")
+            if (webState != null) {
+                webView.restoreState(webState)
+            } else {
+                webView.loadUrl(OUTLOOK_URL)
+            }
             if (savedInstanceState.getBoolean("aliasTab", false)) {
                 nav.selectedItemId = ID_ALIAS
             } else {
